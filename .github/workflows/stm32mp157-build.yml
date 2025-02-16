@@ -69,7 +69,7 @@ jobs:
     - name: Build Linux Kernel
       run: |
         cd linux
-        make stm32mp157c-dk2_defconfig
+        make stm32_defconfig
         make -j$(nproc) uImage dtbs
 
     - name: Cache Buildroot
