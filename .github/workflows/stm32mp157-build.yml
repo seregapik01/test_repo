@@ -84,16 +84,16 @@ jobs:
     - name: Cache Buildroot
       uses: actions/cache@v3
       with:
-        path: buildroot-2023.02
-        key: buildroot-${{ runner.os }}-${{ hashFiles('buildroot-2023.02/**') }}
+        path: buildroot-2024.02.10
+        key: buildroot-${{ runner.os }}-${{ hashFiles('buildroot-2024.02.10/**') }}
         restore-keys: |
           buildroot-${{ runner.os }}-
 
     - name: Build RootFS
       run: |
-        wget https://buildroot.org/downloads/buildroot-2023.02.tar.bz2
-        tar -xjf buildroot-2023.02.tar.bz2
-        cd buildroot-2023.02
+        wget https://buildroot.org/downloads/buildroot-2024.02.10.tar.gz
+        tar -xjf buildroot-2024.02.10.tar.gz
+        cd buildroot-2024.02.10
         make stm32mp157_dk_defconfig
         make -j$(nproc)
 
@@ -103,7 +103,7 @@ jobs:
         cp u-boot/u-boot.bin output/
         cp linux/arch/arm/boot/uImage output/
         cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
-        cp buildroot-2023.02/output/images/rootfs.cpio.gz output/
+        cp buildroot-2024.02.10/output/images/rootfs.cpio.gz output/
         tar -czvf stm32mp157_image.tar.gz -C output .
 
     - name: Upload Artifact
