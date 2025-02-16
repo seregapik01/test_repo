@@ -94,7 +94,7 @@ jobs:
         wget https://buildroot.org/downloads/buildroot-2024.02.10.tar.gz
         tar -xzvf buildroot-2024.02.10.tar.gz
         cd buildroot-2024.02.10
-        make stm32mp157_dk_defconfig
+        make stm32mp157c_dk2_defconfig
         make -j$(nproc)
 
     - name: Package Image
