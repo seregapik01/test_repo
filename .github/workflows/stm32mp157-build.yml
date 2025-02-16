@@ -55,14 +55,20 @@ jobs:
         restore-keys: |
           linux-${{ runner.os }}-
 
-    - name: Build Linux Kernel
+    - name: Clone Linux Kernel
       run: |
         git clone https://github.com/STMicroelectronics/linux.git
         cd linux
-        if [ ! -f arch/arm/configs/stm32mp157c-dk2_defconfig ]; then
-          echo "Error: stm32mp157c-dk2_defconfig not found!"
-          exit 1
-        fi
+        git checkout v6.1-stm32mp  # Переключаемся на стабильный тег
+
+    - name: List available defconfigs
+      run: |
+        cd linux
+        ls arch/arm/configs/
+
+    - name: Build Linux Kernel
+      run: |
+        cd linux
         make stm32mp157c-dk2_defconfig
         make -j$(nproc) uImage dtbs
 
