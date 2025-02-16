@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3  # Клонируем репозиторий
+      uses: actions/checkout@v4  # Клонируем репозиторий
 
     - name: Set up environment
       run: |
@@ -60,7 +60,7 @@ jobs:
         tar -czvf stm32mp157_image.tar.gz -C output .
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Используем версию v4
       with:
         name: stm32mp157_image
         path: stm32mp157_image.tar.gz
