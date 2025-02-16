@@ -44,7 +44,7 @@ jobs:
       run: |
         git clone https://github.com/u-boot/u-boot.git
         cd u-boot
-        make stm32mp15_defconfig
+        make stm32_defconfig
         make -j$(nproc)
 
     - name: Cache Linux Kernel
@@ -59,7 +59,7 @@ jobs:
       run: |
         git clone https://github.com/STMicroelectronics/linux.git
         cd linux
-        git checkout v6.1-stm32mp  # Переключаемся на стабильный тег
+        git checkout v6.6-stm32mp  # Переключаемся на стабильный тег
 
     - name: List available defconfigs
       run: |
