@@ -61,17 +61,15 @@ jobs:
         cd linux
         git checkout v6.1-stm32mp  # Переключаемся на стабильный тег
 
-    - name: List available defconfigs
+    - name: Generate kernel configuration
       run: |
         cd linux
-        ls arch/arm/configs/
+        make stm32mp157c-dk2_defconfig  # Или замените на нужный defconfig
 
-    - name: Modify kernel config to disable XIP
+    - name: Modify kernel configuration
       run: |
         cd linux
-        # Отключаем XIP перед сборкой
         sed -i 's/CONFIG_XIP_KERNEL=y/# CONFIG_XIP_KERNEL is not set/' .config
-        make stm32mp157_defconfig  # Можно указать нужный конфиг, если необходимо
 
     - name: Build Linux Kernel
       run: |
