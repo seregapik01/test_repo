@@ -8,6 +8,10 @@ on:
     branches:
       - main  # Триггер на пул-реквесты в ветку main
 
+env:
+  ARCH: arm
+  CROSS_COMPILE: arm-none-eabi-
+
 jobs:
   build:
     runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
@@ -24,20 +28,51 @@ jobs:
         device-tree-compiler bc u-boot-tools libgnutls28-dev \
         gcc-arm-none-eabi  # Установите кросс-компилятор для ARM
 
+    - name: Check ARM compiler version
+      run: |
+        arm-none-eabi-gcc --version
+
+    - name: Cache U-Boot
+      uses: actions/cache@v3
+      with:
+        path: u-boot
+        key: u-boot-${{ runner.os }}-${{ hashFiles('u-boot/**') }}
+        restore-keys: |
+          u-boot-${{ runner.os }}-
+
     - name: Build U-Boot
       run: |
         git clone https://github.com/u-boot/u-boot.git
         cd u-boot
-        export CROSS_COMPILE=arm-none-eabi-  # Укажите кросс-компилятор
         make stm32mp15_defconfig
         make -j$(nproc)
+
+    - name: Cache Linux Kernel
+      uses: actions/cache@v3
+      with:
+        path: linux
+        key: linux-${{ runner.os }}-${{ hashFiles('linux/**') }}
+        restore-keys: |
+          linux-${{ runner.os }}-
 
     - name: Build Linux Kernel
       run: |
         git clone https://github.com/STMicroelectronics/linux.git
         cd linux
+        if [ ! -f arch/arm/configs/stm32mp157c-dk2_defconfig ]; then
+          echo "Error: stm32mp157c-dk2_defconfig not found!"
+          exit 1
+        fi
         make stm32mp157c-dk2_defconfig
         make -j$(nproc) uImage dtbs
+
+    - name: Cache Buildroot
+      uses: actions/cache@v3
+      with:
+        path: buildroot-2023.02
+        key: buildroot-${{ runner.os }}-${{ hashFiles('buildroot-2023.02/**') }}
+        restore-keys: |
+          buildroot-${{ runner.os }}-
 
     - name: Build RootFS
       run: |
