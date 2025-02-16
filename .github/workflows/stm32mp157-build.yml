@@ -44,7 +44,7 @@ jobs:
       run: |
         git clone https://github.com/u-boot/u-boot.git
         cd u-boot
-        make stm32_defconfig
+        make stm32mp15_defconfig
         make -j$(nproc)
 
     - name: Cache Linux Kernel
