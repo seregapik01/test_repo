@@ -92,7 +92,7 @@ jobs:
     - name: Build RootFS
       run: |
         wget https://buildroot.org/downloads/buildroot-2024.02.10.tar.gz
-        tar -xjf buildroot-2024.02.10.tar.gz
+        tar -xzvf buildroot-2024.02.10.tar.gz
         cd buildroot-2024.02.10
         make stm32mp157_dk_defconfig
         make -j$(nproc)
