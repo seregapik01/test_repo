@@ -103,7 +103,7 @@ jobs:
         cp u-boot/u-boot.bin output/
         cp linux/arch/arm/boot/uImage output/
         cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
-        cp buildroot-2024.02.10/output/images/rootfs.cpio.gz output/
+        cp buildroot-2024.02.10/output/images/rootfs.ext4 output/
         tar -czvf stm32mp157_image.tar.gz -C output .
 
     - name: Upload Artifact
