@@ -66,10 +66,16 @@ jobs:
         cd linux
         ls arch/arm/configs/
 
+    - name: Modify kernel config to disable XIP
+      run: |
+        cd linux
+        # Отключаем XIP перед сборкой
+        sed -i 's/CONFIG_XIP_KERNEL=y/# CONFIG_XIP_KERNEL is not set/' .config
+        make stm32mp157_defconfig  # Можно указать нужный конфиг, если необходимо
+
     - name: Build Linux Kernel
       run: |
         cd linux
-        make stm32_defconfig
         make -j$(nproc) uImage dtbs
 
     - name: Cache Buildroot
