@@ -61,10 +61,15 @@ jobs:
         cd linux
         git checkout v6.1-stm32mp  # Переключаемся на стабильный тег
 
+    - name: List available defconfigs
+      run: |
+        cd linux
+        ls arch/arm/configs/
+
     - name: Generate kernel configuration
       run: |
         cd linux
-        make stm32mp157c-dk2_defconfig  # Или замените на нужный defconfig
+        make stm32_defconfig # stm32mp157c-dk2_defconfig 
 
     - name: Modify kernel configuration
       run: |
