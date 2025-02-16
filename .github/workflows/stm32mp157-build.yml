@@ -1,0 +1,66 @@
+name: STM32MP157 Build
+
+on:
+  push:
+    branches:
+      - main  # Триггер на пуши в ветку main
+  pull_request:
+    branches:
+      - main  # Триггер на пул-реквесты в ветку main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3  # Клонируем репозиторий
+
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git wget bzip2 \
+        python3 python3-pip python3-setuptools python3-wheel \
+        device-tree-compiler bc u-boot-tools
+
+    - name: Install additional dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install -r requirements.txt  # Установите зависимости, если они есть
+
+    - name: Build U-Boot
+      run: |
+        git clone https://github.com/u-boot/u-boot.git
+        cd u-boot
+        make stm32mp15_defconfig
+        make -j$(nproc)
+
+    - name: Build Linux Kernel
+      run: |
+        git clone https://github.com/STMicroelectronics/linux.git
+        cd linux
+        make stm32mp157c-dk2_defconfig
+        make -j$(nproc) uImage dtbs
+
+    - name: Build RootFS
+      run: |
+        wget https://buildroot.org/downloads/buildroot-2023.02.tar.bz2
+        tar -xjf buildroot-2023.02.tar.bz2
+        cd buildroot-2023.02
+        make stm32mp157_dk_defconfig
+        make -j$(nproc)
+
+    - name: Package Image
+      run: |
+        mkdir -p output
+        cp u-boot/u-boot.bin output/
+        cp linux/arch/arm/boot/uImage output/
+        cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
+        cp buildroot-2023.02/output/images/rootfs.cpio.gz output/
+        tar -czvf stm32mp157_image.tar.gz -C output .
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: stm32mp157_image
+        path: stm32mp157_image.tar.gz
