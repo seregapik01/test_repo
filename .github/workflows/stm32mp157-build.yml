@@ -87,7 +87,7 @@ jobs:
         cd linux
         make -j$(nproc) uImage dtbs
 
-    - name: Build Ubuntu RootFS
+       - name: Build Ubuntu RootFS
       run: |
         sudo mkdir /mnt/ubuntu-rootfs
         sudo debootstrap focal /mnt/ubuntu-rootfs http://archive.ubuntu.com/ubuntu/
@@ -104,6 +104,8 @@ jobs:
 
         # Настраиваем базовые файлы
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'root:password' | chpasswd"
+        
+        # Используем '|| true' для предотвращения прерывания, если установка пароля не удалась
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd || true"
 
         # Устанавливаем необходимые пакеты
@@ -116,6 +118,7 @@ jobs:
 
         # Создаем пользователя ubuntu
         sudo chroot /mnt/ubuntu-rootfs useradd -m -s /bin/bash ubuntu
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd || true"
         sudo chroot /mnt/ubuntu-rootfs usermod -aG sudo ubuntu
 
         # Размонтируем файловые системы
