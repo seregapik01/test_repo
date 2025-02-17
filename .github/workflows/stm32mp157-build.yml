@@ -104,7 +104,7 @@ jobs:
 
         # Настраиваем базовые файлы
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'root:password' | chpasswd"
-        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd"
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd || true"
 
         # Устанавливаем необходимые пакеты
         sudo chroot /mnt/ubuntu-rootfs apt-get update
