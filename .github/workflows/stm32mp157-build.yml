@@ -85,7 +85,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: buildroot-2024.02.10
-        key: buildroot-${{ runner.os }}-${{ hashFiles('buildroot-2024.02.10/**') }}
+        key: buildroot-${{ runner.os }}-2024.02.10
         restore-keys: |
           buildroot-${{ runner.os }}-
 
