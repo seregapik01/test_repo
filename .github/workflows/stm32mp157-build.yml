@@ -26,7 +26,7 @@ jobs:
         sudo apt-get install -y build-essential git wget bzip2 \
         python3 python3-pip python3-setuptools python3-wheel \
         device-tree-compiler bc u-boot-tools libgnutls28-dev \
-        gcc-arm-none-eabi  # Установите кросс-компилятор для ARM
+        gcc-arm-none-eabi debootstrap  # Установите debootstrap
 
     - name: Check ARM compiler version
       run: |
@@ -81,39 +81,25 @@ jobs:
         cd linux
         make -j$(nproc) uImage dtbs
 
-    - name: Cache Buildroot
-      uses: actions/cache@v3
-      with:
-        path: buildroot-2024.02.10
-        key: buildroot-${{ runner.os }}-2024.02.10
-        restore-keys: |
-          buildroot-${{ runner.os }}-
-
     - name: Build Ubuntu RootFS
       run: |
-        sudo apt-get update
-        sudo apt-get install -y debootstrap
         sudo mkdir /mnt/ubuntu-rootfs
         sudo debootstrap focal /mnt/ubuntu-rootfs http://archive.ubuntu.com/ubuntu/
+        sudo chroot /mnt/ubuntu-rootfs apt-get update
+        sudo chroot /mnt/ubuntu-rootfs apt-get install -y systemd network-manager sudo ssh
+        sudo chroot /mnt/ubuntu-rootfs passwd root
+        sudo chroot /mnt/ubuntu-rootfs adduser ubuntu
+        sudo chroot /mnt/ubuntu-rootfs usermod -aG sudo ubuntu
         sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
-    - name: Upload Ubuntu RootFS Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ubuntu-rootfs
-        path: ubuntu-rootfs.tar.gz
-
-    - name: Build Ubuntu Image
+    - name: Package Image
       run: |
-        # Создаем образ Ubuntu
-        sudo apt-get install -y squashfs-tools
-        sudo mksquashfs /mnt/ubuntu-rootfs ubuntu-image.squashfs
-
-    - name: Upload Ubuntu Image Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ubuntu-image
-        path: ubuntu-image.squashfs
+        mkdir -p output
+        cp u-boot/u-boot.bin output/
+        cp linux/arch/arm/boot/uImage output/
+        cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
+        cp ubuntu-rootfs.tar.gz output/  # Используем Ubuntu RootFS вместо Buildroot
+        tar -czvf stm32mp157_image.tar.gz -C output .
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
