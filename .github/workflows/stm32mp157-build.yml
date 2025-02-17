@@ -97,6 +97,11 @@ jobs:
         sudo mount --bind /proc /mnt/ubuntu-rootfs/proc
         sudo mount --bind /sys /mnt/ubuntu-rootfs/sys
 
+        # Копируем необходимые файлы для PAM
+        sudo cp /etc/passwd /mnt/ubuntu-rootfs/etc/
+        sudo cp /etc/shadow /mnt/ubuntu-rootfs/etc/
+        sudo cp /etc/group /mnt/ubuntu-rootfs/etc/
+
         # Настраиваем базовые файлы
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'root:password' | chpasswd"
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd"
