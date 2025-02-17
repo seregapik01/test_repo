@@ -91,11 +91,34 @@ jobs:
       run: |
         sudo mkdir /mnt/ubuntu-rootfs
         sudo debootstrap focal /mnt/ubuntu-rootfs http://archive.ubuntu.com/ubuntu/
+
+        # Монтируем необходимые файловые системы
+        sudo mount --bind /dev /mnt/ubuntu-rootfs/dev
+        sudo mount --bind /proc /mnt/ubuntu-rootfs/proc
+        sudo mount --bind /sys /mnt/ubuntu-rootfs/sys
+
+        # Настраиваем базовые файлы
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'root:password' | chpasswd"
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd"
+
+        # Устанавливаем необходимые пакеты
         sudo chroot /mnt/ubuntu-rootfs apt-get update
-        sudo chroot /mnt/ubuntu-rootfs apt-get install -y systemd network-manager sudo ssh
-        sudo chroot /mnt/ubuntu-rootfs passwd root
-        sudo chroot /mnt/ubuntu-rootfs adduser ubuntu
+        sudo chroot /mnt/ubuntu-rootfs apt-get install -y systemd-sysv dbus network-manager sudo ssh
+
+        # Настраиваем сетевые интерфейсы
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'auto lo' > /etc/network/interfaces"
+        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'iface lo inet loopback' >> /etc/network/interfaces"
+
+        # Создаем пользователя ubuntu
+        sudo chroot /mnt/ubuntu-rootfs useradd -m -s /bin/bash ubuntu
         sudo chroot /mnt/ubuntu-rootfs usermod -aG sudo ubuntu
+
+        # Размонтируем файловые системы
+        sudo umount /mnt/ubuntu-rootfs/dev
+        sudo umount /mnt/ubuntu-rootfs/proc
+        sudo umount /mnt/ubuntu-rootfs/sys
+
+        # Упаковываем RootFS
         sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
     - name: Package Image
