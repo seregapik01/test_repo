@@ -42,6 +42,9 @@ jobs:
 
     - name: Build U-Boot
       run: |
+        if [ -d "u-boot" ]; then
+          rm -rf u-boot  # Удаляем существующую директорию, если она есть
+        fi
         git clone https://github.com/u-boot/u-boot.git
         cd u-boot
         make stm32mp15_defconfig
