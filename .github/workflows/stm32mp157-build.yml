@@ -89,22 +89,31 @@ jobs:
         restore-keys: |
           buildroot-${{ runner.os }}-
 
-    - name: Build RootFS
+    - name: Build Ubuntu RootFS
       run: |
-        wget https://buildroot.org/downloads/buildroot-2024.02.10.tar.gz
-        tar -xzvf buildroot-2024.02.10.tar.gz
-        cd buildroot-2024.02.10
-        make stm32mp157c_dk2_defconfig
-        make -j$(nproc)
+        sudo apt-get update
+        sudo apt-get install -y debootstrap
+        sudo mkdir /mnt/ubuntu-rootfs
+        sudo debootstrap focal /mnt/ubuntu-rootfs http://archive.ubuntu.com/ubuntu/
+        sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
-    - name: Package Image
+    - name: Upload Ubuntu RootFS Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ubuntu-rootfs
+        path: ubuntu-rootfs.tar.gz
+
+    - name: Build Ubuntu Image
       run: |
-        mkdir -p output
-        cp u-boot/u-boot.bin output/
-        cp linux/arch/arm/boot/uImage output/
-        cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
-        cp buildroot-2024.02.10/output/images/rootfs.ext4 output/
-        tar -czvf stm32mp157_image.tar.gz -C output .
+        # Создаем образ Ubuntu
+        sudo apt-get install -y squashfs-tools
+        sudo mksquashfs /mnt/ubuntu-rootfs ubuntu-image.squashfs
+
+    - name: Upload Ubuntu Image Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ubuntu-image
+        path: ubuntu-image.squashfs
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
