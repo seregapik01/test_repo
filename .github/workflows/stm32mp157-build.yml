@@ -3,10 +3,10 @@ name: STM32MP157 Build
 on:
   push:
     branches:
-      - main  # Триггер на пуши в ветку main
+      - main
   pull_request:
     branches:
-      - main  # Триггер на пул-реквесты в ветку main
+      - main
 
 env:
   ARCH: arm
@@ -14,11 +14,11 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4  # Клонируем репозиторий
+      uses: actions/checkout@v4
 
     - name: Set up environment
       run: |
@@ -26,7 +26,7 @@ jobs:
         sudo apt-get install -y build-essential git wget bzip2 \
         python3 python3-pip python3-setuptools python3-wheel \
         device-tree-compiler bc u-boot-tools libgnutls28-dev \
-        gcc-arm-none-eabi debootstrap  # Установите debootstrap
+        gcc-arm-none-eabi debootstrap
 
     - name: Check ARM compiler version
       run: |
@@ -43,7 +43,7 @@ jobs:
     - name: Build U-Boot
       run: |
         if [ -d "u-boot" ]; then
-          rm -rf u-boot  # Удаляем существующую директорию, если она есть
+          rm -rf u-boot
         fi
         git clone https://github.com/u-boot/u-boot.git
         cd u-boot
@@ -61,11 +61,11 @@ jobs:
     - name: Clone Linux Kernel
       run: |
         if [ -d "linux" ]; then
-          rm -rf linux  # Удаляем существующую директорию, если она есть
+          rm -rf linux
         fi
         git clone https://github.com/STMicroelectronics/linux.git
         cd linux
-        git checkout v6.1-stm32mp  # Переключаемся на стабильный тег
+        git checkout v6.1-stm32mp
 
     - name: List available defconfigs
       run: |
@@ -75,7 +75,7 @@ jobs:
     - name: Generate kernel configuration
       run: |
         cd linux
-        make stm32_defconfig # stm32mp157c-dk2_defconfig 
+        make stm32_defconfig
 
     - name: Modify kernel configuration
       run: |
@@ -87,59 +87,51 @@ jobs:
         cd linux
         make -j$(nproc) uImage dtbs
 
-       - name: Build Ubuntu RootFS
+    - name: Build Ubuntu RootFS
       run: |
         sudo mkdir /mnt/ubuntu-rootfs
         sudo debootstrap focal /mnt/ubuntu-rootfs http://archive.ubuntu.com/ubuntu/
 
-        # Монтируем необходимые файловые системы
         sudo mount --bind /dev /mnt/ubuntu-rootfs/dev
         sudo mount --bind /proc /mnt/ubuntu-rootfs/proc
         sudo mount --bind /sys /mnt/ubuntu-rootfs/sys
 
-        # Копируем необходимые файлы для PAM
         sudo cp /etc/passwd /mnt/ubuntu-rootfs/etc/
         sudo cp /etc/shadow /mnt/ubuntu-rootfs/etc/
         sudo cp /etc/group /mnt/ubuntu-rootfs/etc/
 
-        # Настраиваем базовые файлы
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'root:password' | chpasswd"
-        
-        # Используем '|| true' для предотвращения прерывания, если установка пароля не удалась
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd || true"
 
-        # Устанавливаем необходимые пакеты
         sudo chroot /mnt/ubuntu-rootfs apt-get update
         sudo chroot /mnt/ubuntu-rootfs apt-get install -y systemd-sysv dbus network-manager sudo ssh
 
-        # Настраиваем сетевые интерфейсы
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'auto lo' > /etc/network/interfaces"
         sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'iface lo inet loopback' >> /etc/network/interfaces"
 
-        # Создаем пользователя ubuntu
         sudo chroot /mnt/ubuntu-rootfs useradd -m -s /bin/bash ubuntu
-        sudo chroot /mnt/ubuntu-rootfs bash -c "echo 'ubuntu:password' | chpasswd || true"
         sudo chroot /mnt/ubuntu-rootfs usermod -aG sudo ubuntu
 
-        # Размонтируем файловые системы
         sudo umount /mnt/ubuntu-rootfs/dev
         sudo umount /mnt/ubuntu-rootfs/proc
         sudo umount /mnt/ubuntu-rootfs/sys
 
-        # Упаковываем RootFS
         sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
-    - name: Package Image
+    - name: Create SD Card Image
       run: |
-        mkdir -p output
-        cp u-boot/u-boot.bin output/
-        cp linux/arch/arm/boot/uImage output/
-        cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb output/
-        cp ubuntu-rootfs.tar.gz output/  # Используем Ubuntu RootFS вместо Buildroot
-        tar -czvf stm32mp157_image.tar.gz -C output .
+        dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
+        mkfs.ext4 stm32mp157_image.img
+        mkdir -p /mnt/sdcard
+        sudo mount -o loop stm32mp157_image.img /mnt/sdcard
+        sudo cp u-boot/u-boot.bin /mnt/sdcard/
+        sudo cp linux/arch/arm/boot/uImage /mnt/sdcard/
+        sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb /mnt/sdcard/
+        sudo cp ubuntu-rootfs.tar.gz /mnt/sdcard/
+        sudo umount /mnt/sdcard
 
-    - name: Upload Artifact
+    - name: Upload SD Card Image
       uses: actions/upload-artifact@v4
       with:
         name: stm32mp157_image
-        path: stm32mp157_image.tar.gz
+        path: stm32mp157_image.img
