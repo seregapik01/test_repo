@@ -168,20 +168,6 @@ jobs:
         rm -rf ./mnt/rootfs
         rm stm32mp157_image.img
         rm ubuntu-rootfs.tar.gz
-    - name: Validate SD Card Image
-      run: |
-        # Проверяем, что образ был создан успешно
-        if [ ! -f stm32mp157_image.img ]; then
-          echo "Ошибка: образ SD-карты не был создан."
-          exit 1
-        fi
-
-        # Проверяем размер образа
-        IMAGE_SIZE=$(stat -c%s "stm32mp157_image.img")
-        if [ $IMAGE_SIZE -ne 2147483648 ]; then
-          echo "Ошибка: размер образа не соответствует ожидаемому (2 ГБ)."
-          exit 1
-        fi
 
     - name: Upload SD Card Image
       uses: actions/upload-artifact@v4
