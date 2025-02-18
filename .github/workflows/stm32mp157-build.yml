@@ -118,7 +118,7 @@ jobs:
 
         sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
-     - name: Create SD Card Image
+    - name: Create SD Card Image
       run: |
         # Создаем пустой образ размером 2 ГБ
         dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
