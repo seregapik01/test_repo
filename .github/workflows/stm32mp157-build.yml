@@ -26,7 +26,7 @@ jobs:
         sudo apt-get install -y build-essential git wget bzip2 \
         python3 python3-pip python3-setuptools python3-wheel \
         device-tree-compiler bc u-boot-tools libgnutls28-dev \
-        gcc-arm-none-eabi debootstrap
+        gcc-arm-none-eabi debootstrap parted
 
     - name: Check ARM compiler version
       run: |
@@ -123,23 +123,42 @@ jobs:
         # Создаем пустой образ размером 2 ГБ
         dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
         
-        # Создаем файловую систему ext4
-        mkfs.ext4 stm32mp157_image.img
+        # Создаем таблицу разделов
+        sudo parted stm32mp157_image.img mklabel msdos
         
-        # Создаем временную директорию
-        mkdir -p ./mnt/sdcard
+        # Создаем FAT32 раздел для U-Boot и ядра
+        sudo parted stm32mp157_image.img mkpart primary fat32 1MiB 256MiB
         
-        # Монтируем образ
-        sudo mount -o loop stm32mp157_image.img ./mnt/sdcard
+        # Создаем ext4 раздел для корневой файловой системы
+        sudo parted stm32mp157_image.img mkpart primary ext4 256MiB 100%
         
-        # Копируем необходимые файлы в образ
-        sudo cp u-boot/u-boot.bin ./mnt/sdcard/
-        sudo cp linux/arch/arm/boot/uImage ./mnt/sdcard/
-        sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb ./mnt/sdcard/
-        sudo cp ubuntu-rootfs.tar.gz ./mnt/sdcard/
-        
-        # Размонтируем образ
-        sudo umount ./mnt/sdcard
+        # Форматируем разделы
+        sudo mkfs.vfat -n "BOOT" stm32mp157_image.img1
+        sudo mkfs.ext4 -L "ROOTFS" stm32mp157_image.img2
+
+        # Создаем временные директории для монтирования
+        mkdir -p ./mnt/boot
+        mkdir -p ./mnt/rootfs
+
+        # Монтируем FAT32 раздел
+        sudo mount -o loop,offset=$((1 * 1024 * 1024)) stm32mp157_image.img ./mnt/boot
+
+        # Копируем файлы U-Boot и ядра
+        sudo cp u-boot/u-boot.bin ./mnt/boot/
+        sudo cp linux/arch/arm/boot/uImage ./mnt/boot/
+        sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb ./mnt/boot/
+
+        # Размонтируем FAT32 раздел
+        sudo umount ./mnt/boot
+
+        # Монтируем ext4 раздел
+        sudo mount -o loop,offset=$((256 * 1024 * 1024)) stm32mp157_image.img ./mnt/rootfs
+
+        # Копируем корневую файловую систему
+        sudo tar -xzf ubuntu-rootfs.tar.gz -C ./mnt/rootfs/
+
+        # Размонтируем ext4 раздел
+        sudo umount ./mnt/rootfs
 
     - name: Upload SD Card Image
       uses: actions/upload-artifact@v4
