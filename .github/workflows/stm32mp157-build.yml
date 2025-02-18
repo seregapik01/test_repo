@@ -33,7 +33,7 @@ jobs:
         arm-none-eabi-gcc --version
 
     - name: Cache U-Boot
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: u-boot
         key: u-boot-${{ runner.os }}-${{ hashFiles('u-boot/**') }}
@@ -51,7 +51,7 @@ jobs:
         make -j$(nproc)
 
     - name: Cache Linux Kernel
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: linux
         key: linux-${{ runner.os }}-${{ hashFiles('linux/**') }}
