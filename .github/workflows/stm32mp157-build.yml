@@ -122,48 +122,73 @@ jobs:
       run: |
         # Создаем пустой образ размером 2 ГБ
         dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
-        
-        # Создаем таблицу разделов
+
+        # Создаем таблицу разделов (msdos)
         sudo parted stm32mp157_image.img mklabel msdos
-        
-        # Создаем FAT32 раздел для U-Boot и ядра
-        sudo parted stm32mp157_image.img mkpart primary fat32 1MiB 256MiB
-        
-        # Создаем ext4 раздел для корневой файловой системы
-        sudo parted stm32mp157_image.img mkpart primary ext4 256MiB 100%
-        
-        # Форматируем FAT32 раздел
-        sudo mkfs.vfat -F 32 -n "BOOT" --offset $((1 * 2048)) stm32mp157_image.img $((255 * 2048))
-        
-        # Форматируем ext4 раздел
+
+        # Создаем раздел boot (FAT32)
+        sudo parted stm32mp157_image.img mkpart primary fat32 1MiB 257MiB
+
+        # Создаем раздел rootfs (ext4)
+        sudo parted stm32mp157_image.img mkpart primary ext4 257MiB 100%
+
+        # Форматируем раздел boot (FAT32)
+        sudo mkfs.vfat -n "BOOT" --offset $((1 * 2048)) stm32mp157_image.img $((255 * 2048))
+
+        # Форматируем раздел rootfs (ext4)
         sudo mkfs.ext4 -L "ROOTFS" -E offset=$((256 * 2048 * 512)) stm32mp157_image.img $((1792 * 2048))
 
         # Создаем временные директории для монтирования
         mkdir -p ./mnt/boot
         mkdir -p ./mnt/rootfs
 
-        # Монтируем FAT32 раздел
+        # Монтируем раздел boot
         sudo mount -o loop,offset=$((1 * 2048 * 512)) stm32mp157_image.img ./mnt/boot
 
-        # Копируем файлы U-Boot и ядра
+        # Копируем файлы U-Boot, ядра и DTB
         sudo cp u-boot/u-boot.bin ./mnt/boot/
         sudo cp linux/arch/arm/boot/uImage ./mnt/boot/
         sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb ./mnt/boot/
 
-        # Размонтируем FAT32 раздел
+        # Размонтируем раздел boot
         sudo umount ./mnt/boot
 
-        # Монтируем ext4 раздел
+        # Монтируем раздел rootfs
         sudo mount -o loop,offset=$((256 * 2048 * 512)) stm32mp157_image.img ./mnt/rootfs
 
         # Копируем корневую файловую систему
-        sudo tar -xzf ubuntu-rootfs.tar.gz -C ./mnt/rootfs/
+        sudo tar -xzvf ubuntu-rootfs.tar.gz -C ./mnt/rootfs
 
-        # Размонтируем ext4 раздел
+        # Размонтируем раздел rootfs
         sudo umount ./mnt/rootfs
 
+    - name: Clean up
+      run: |
+        rm -rf ./mnt/boot
+        rm -rf ./mnt/rootfs
+        rm stm32mp157_image.img
+        rm ubuntu-rootfs.tar.gz
+    - name: Validate SD Card Image
+      run: |
+        # Проверяем, что образ был создан успешно
+        if [ ! -f stm32mp157_image.img ]; then
+          echo "Ошибка: образ SD-карты не был создан."
+          exit 1
+        fi
+
+        # Проверяем размер образа
+        IMAGE_SIZE=$(stat -c%s "stm32mp157_image.img")
+        if [ $IMAGE_SIZE -ne 2147483648 ]; then
+          echo "Ошибка: размер образа не соответствует ожидаемому (2 ГБ)."
+          exit 1
+        fi
+
     - name: Upload SD Card Image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: stm32mp157_image
         path: stm32mp157_image.img
+    - name: Notify Completion
+      run: |
+        echo "Создание образа SD-карты завершено успешно."
+        echo "Образ доступен для загрузки."
