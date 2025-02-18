@@ -118,7 +118,7 @@ jobs:
 
         sudo tar -czvf ubuntu-rootfs.tar.gz -C /mnt/ubuntu-rootfs .
 
-    - name: Create SD Card Image
+       - name: Create SD Card Image
       run: |
         # Создаем пустой образ размером 2 ГБ
         dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
@@ -132,16 +132,18 @@ jobs:
         # Создаем ext4 раздел для корневой файловой системы
         sudo parted stm32mp157_image.img mkpart primary ext4 256MiB 100%
         
-        # Форматируем разделы
-        sudo mkfs.vfat -n "BOOT" stm32mp157_image.img1
-        sudo mkfs.ext4 -L "ROOTFS" stm32mp157_image.img2
+        # Форматируем FAT32 раздел
+        sudo mkfs.vfat -F 32 -n "BOOT" --offset $((1 * 2048)) stm32mp157_image.img $((255 * 2048))
+        
+        # Форматируем ext4 раздел
+        sudo mkfs.ext4 -L "ROOTFS" -E offset=$((256 * 2048 * 512)) stm32mp157_image.img $((1792 * 2048))
 
         # Создаем временные директории для монтирования
         mkdir -p ./mnt/boot
         mkdir -p ./mnt/rootfs
 
         # Монтируем FAT32 раздел
-        sudo mount -o loop,offset=$((1 * 1024 * 1024)) stm32mp157_image.img ./mnt/boot
+        sudo mount -o loop,offset=$((1 * 2048 * 512)) stm32mp157_image.img ./mnt/boot
 
         # Копируем файлы U-Boot и ядра
         sudo cp u-boot/u-boot.bin ./mnt/boot/
@@ -152,7 +154,7 @@ jobs:
         sudo umount ./mnt/boot
 
         # Монтируем ext4 раздел
-        sudo mount -o loop,offset=$((256 * 1024 * 1024)) stm32mp157_image.img ./mnt/rootfs
+        sudo mount -o loop,offset=$((256 * 2048 * 512)) stm32mp157_image.img ./mnt/rootfs
 
         # Копируем корневую файловую систему
         sudo tar -xzf ubuntu-rootfs.tar.gz -C ./mnt/rootfs/
