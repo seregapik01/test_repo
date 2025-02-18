@@ -120,15 +120,26 @@ jobs:
 
     - name: Create SD Card Image
       run: |
+        # Создаем пустой образ размером 2 ГБ
         dd if=/dev/zero of=stm32mp157_image.img bs=1M count=2048
+        
+        # Создаем файловую систему ext4
         mkfs.ext4 stm32mp157_image.img
-        mkdir -p /mnt/sdcard
-        sudo mount -o loop stm32mp157_image.img /mnt/sdcard
-        sudo cp u-boot/u-boot.bin /mnt/sdcard/
-        sudo cp linux/arch/arm/boot/uImage /mnt/sdcard/
-        sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb /mnt/sdcard/
-        sudo cp ubuntu-rootfs.tar.gz /mnt/sdcard/
-        sudo umount /mnt/sdcard
+        
+        # Создаем временную директорию
+        mkdir -p ./mnt/sdcard
+        
+        # Монтируем образ
+        sudo mount -o loop stm32mp157_image.img ./mnt/sdcard
+        
+        # Копируем необходимые файлы в образ
+        sudo cp u-boot/u-boot.bin ./mnt/sdcard/
+        sudo cp linux/arch/arm/boot/uImage ./mnt/sdcard/
+        sudo cp linux/arch/arm/boot/dts/stm32mp157c-dk2.dtb ./mnt/sdcard/
+        sudo cp ubuntu-rootfs.tar.gz ./mnt/sdcard/
+        
+        # Размонтируем образ
+        sudo umount ./mnt/sdcard
 
     - name: Upload SD Card Image
       uses: actions/upload-artifact@v4
